@@ -1,36 +1,119 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🎫 Kami - 卡密管理系统
 
-## Getting Started
+一个简洁、现代化的卡密（兑换码）管理系统，基于 Next.js 14 和 Vercel KV (Redis) 构建。
 
-First, run the development server:
+## ✨ 功能特性
 
+### 前台功能
+- 🔐 卡密验证和兑换
+- 📱 响应式设计，支持移动端
+- 🎨 现代化 UI 设计
+- 🔒 IP 限制防止暴力破解
+- ♻️ 支持多次使用的卡密
+
+### 后台管理
+- 🔑 密码保护的管理后台
+- ➕ 创建单个或批量卡密
+- 🎯 自定义卡密码或自动生成
+- 🔢 设置使用次数限制
+- 📊 卡密使用统计
+- 🔍 搜索和筛选功能
+- ☑️ 批量选择和操作
+- 📋 一键复制卡密/链接
+- 📤 导出为 TXT/CSV 格式
+- 🗑️ 删除卡密
+- 📍 记录使用 IP 和历史
+
+## 🛠️ 技术栈
+
+- **框架**: Next.js 14 (App Router)
+- **语言**: TypeScript
+- **样式**: Tailwind CSS
+- **数据库**: Vercel KV (Redis)
+- **部署**: Vercel
+
+## 🚀 快速开始
+
+### 本地开发
+
+1. **安装依赖**
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. **配置环境变量**
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+创建 `.env.local` 文件：
+```bash
+ADMIN_PASSWORD=your_admin_password
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+3. **运行开发服务器**
+```bash
+npm run dev
+```
 
-## Learn More
+4. **访问应用**
+- 前台：http://localhost:3000
+- 后台：http://localhost:3000/admin
 
-To learn more about Next.js, take a look at the following resources:
+### 部署到 Vercel
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+详细部署步骤请查看 [DEPLOY.md](./DEPLOY.md)
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+**简要步骤：**
+1. 推送代码到 GitHub
+2. 在 Vercel 导入项目
+3. 配置环境变量 `ADMIN_PASSWORD`
+4. 部署项目
+5. 创建 Vercel KV 数据库
+6. 重新部署
 
-## Deploy on Vercel
+## 📖 使用说明
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### 创建卡密
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+1. 访问 `/admin` 登录管理后台
+2. 填写卡密内容
+3. 设置使用次数限制（默认 3 次）
+4. 选择批量生成数量（1-100）
+5. 点击"创建卡密"
+
+### 批量操作
+
+1. 使用复选框选择多个卡密
+2. 点击"复制卡密"或"复制链接"批量复制
+3. 点击"导出TXT"或"导出CSV"导出选中的卡密
+
+### 验证卡密
+
+1. 访问首页
+2. 输入卡密码
+3. 点击"验证"查看内容
+
+## 🔒 安全特性
+
+- ✅ 管理后台密码保护
+- ✅ IP 限制防止暴力破解
+- ✅ 环境变量保护敏感信息
+- ✅ 使用次数限制
+- ✅ 使用历史记录
+
+## 📊 数据存储
+
+项目使用 **Vercel KV (Redis)** 存储数据：
+- 所有卡密数据存储在 Redis 中
+- 数据持久化，不会丢失
+- 免费额度：30MB 存储，100,000 次请求/月
+
+## 📝 环境变量
+
+| 变量名 | 说明 | 必需 |
+|--------|------|------|
+| `ADMIN_PASSWORD` | 管理员密码 | ✅ |
+| `KV_REST_API_URL` | Vercel KV URL | ✅ (部署时自动配置) |
+| `KV_REST_API_TOKEN` | Vercel KV Token | ✅ (部署时自动配置) |
+
+## 📄 许可证
+
+MIT License
