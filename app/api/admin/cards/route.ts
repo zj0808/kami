@@ -2,6 +2,20 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAllCards, createCard, deleteCard, generateRandomCode, createBatchCards } from '@/lib/db';
 import { ApiResponse } from '@/lib/types';
 
+// 添加 CORS 头
+function corsHeaders() {
+  return {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  };
+}
+
+// 处理 OPTIONS 请求（预检请求）
+export async function OPTIONS() {
+  return NextResponse.json({}, { headers: corsHeaders() });
+}
+
 // 获取所有卡密
 export async function GET() {
   try {
@@ -9,13 +23,13 @@ export async function GET() {
     return NextResponse.json<ApiResponse>({
       success: true,
       data: cards,
-    });
+    }, { headers: corsHeaders() });
   } catch (error) {
     console.error('获取卡密列表错误:', error);
     return NextResponse.json<ApiResponse>({
       success: false,
       message: '服务器错误',
-    }, { status: 500 });
+    }, { status: 500, headers: corsHeaders() });
   }
 }
 
@@ -28,7 +42,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json<ApiResponse>({
         success: false,
         message: '请输入内容',
-      }, { status: 400 });
+      }, { status: 400, headers: corsHeaders() });
     }
 
     // 批量创建
@@ -37,7 +51,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json<ApiResponse>({
           success: false,
           message: '单次最多创建100个卡密',
-        }, { status: 400 });
+        }, { status: 400, headers: corsHeaders() });
       }
 
       const newCards = await createBatchCards(content, batchCount, maxUses);
@@ -45,7 +59,7 @@ export async function POST(request: NextRequest) {
         success: true,
         data: newCards,
         message: `成功创建 ${batchCount} 个卡密`,
-      });
+      }, { headers: corsHeaders() });
     }
 
     // 单个创建
@@ -56,13 +70,13 @@ export async function POST(request: NextRequest) {
       success: true,
       data: newCard,
       message: '卡密创建成功',
-    });
+    }, { headers: corsHeaders() });
   } catch (error) {
     console.error('创建卡密错误:', error);
     return NextResponse.json<ApiResponse>({
       success: false,
       message: '服务器错误',
-    }, { status: 500 });
+    }, { status: 500, headers: corsHeaders() });
   }
 }
 
@@ -76,7 +90,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json<ApiResponse>({
         success: false,
         message: '缺少卡密ID',
-      }, { status: 400 });
+      }, { status: 400, headers: corsHeaders() });
     }
 
     const deleted = await deleteCard(id);
@@ -85,19 +99,19 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json<ApiResponse>({
         success: false,
         message: '卡密不存在',
-      }, { status: 404 });
+      }, { status: 404, headers: corsHeaders() });
     }
 
     return NextResponse.json<ApiResponse>({
       success: true,
       message: '删除成功',
-    });
+    }, { headers: corsHeaders() });
   } catch (error) {
     console.error('删除卡密错误:', error);
     return NextResponse.json<ApiResponse>({
       success: false,
       message: '服务器错误',
-    }, { status: 500 });
+    }, { status: 500, headers: corsHeaders() });
   }
 }
 

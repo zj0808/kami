@@ -3,6 +3,20 @@ import { findCardByCode, markCardAsUsed } from '@/lib/db';
 import { ApiResponse } from '@/lib/types';
 import { checkIpLimit, recordIpAttempt, getClientIp } from '@/lib/ip-limiter';
 
+// 添加 CORS 头
+function corsHeaders() {
+  return {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  };
+}
+
+// 处理 OPTIONS 请求（预检请求）
+export async function OPTIONS() {
+  return NextResponse.json({}, { headers: corsHeaders() });
+}
+
 export async function POST(request: NextRequest) {
   try {
     // 获取客户端IP
@@ -14,7 +28,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json<ApiResponse>({
         success: false,
         message: ipCheck.message || 'IP被限制',
-      }, { status: 429 });
+      }, { status: 429, headers: corsHeaders() });
     }
 
     // 记录IP尝试
@@ -26,7 +40,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json<ApiResponse>({
         success: false,
         message: '请输入卡密',
-      }, { status: 400 });
+      }, { status: 400, headers: corsHeaders() });
     }
 
     const card = await findCardByCode(code);
@@ -35,7 +49,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json<ApiResponse>({
         success: false,
         message: '卡密不存在',
-      }, { status: 404 });
+      }, { status: 404, headers: corsHeaders() });
     }
 
     // 检查是否还有剩余使用次数
@@ -43,7 +57,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json<ApiResponse>({
         success: false,
         message: '该卡密已达到最大使用次数',
-      }, { status: 400 });
+      }, { status: 400, headers: corsHeaders() });
     }
 
     // 标记为已使用，记录IP
@@ -53,7 +67,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json<ApiResponse>({
         success: false,
         message: '卡密使用失败',
-      }, { status: 500 });
+      }, { status: 500, headers: corsHeaders() });
     }
 
     // 重新获取卡密信息，获取最新的使用次数
@@ -67,13 +81,13 @@ export async function POST(request: NextRequest) {
         remainingUses,
         maxUses: card.maxUses,
       },
-    });
+    }, { headers: corsHeaders() });
   } catch (error) {
     console.error('验证卡密错误:', error);
     return NextResponse.json<ApiResponse>({
       success: false,
       message: '服务器错误',
-    }, { status: 500 });
+    }, { status: 500, headers: corsHeaders() });
   }
 }
 
