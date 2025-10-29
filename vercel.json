@@ -4,6 +4,6 @@
   "installCommand": "npm install",
   "framework": "nextjs",
   "regions": ["hkg1"],
-  "alias": ["11sa.site", "www.11sa.site"]
+  "alias": ["11sa.site", "www.11sa.site", "verify.11sa.site"]
 }
 
