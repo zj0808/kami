@@ -1,37 +1,28 @@
-import fs from 'fs';
-import path from 'path';
+import { kv } from '@vercel/kv';
 import { IpAttempt } from './types';
 
-const IP_DATA_FILE = path.join(process.cwd(), 'data', 'ip-attempts.json');
+const IP_ATTEMPTS_KEY = 'ip:attempts:all'; // Redis key for storing IP attempts
 const MAX_ATTEMPTS_PER_HOUR = 10; // 每小时最多尝试10次
 const BLOCK_DURATION = 60 * 60 * 1000; // 1小时
 
-// 确保数据目录存在
-function ensureDataDir() {
-  const dataDir = path.dirname(IP_DATA_FILE);
-  if (!fs.existsSync(dataDir)) {
-    fs.mkdirSync(dataDir, { recursive: true });
-  }
-}
-
 // 读取IP尝试记录
-function getIpAttempts(): IpAttempt[] {
-  ensureDataDir();
-  if (!fs.existsSync(IP_DATA_FILE)) {
-    return [];
-  }
+async function getIpAttempts(): Promise<IpAttempt[]> {
   try {
-    const data = fs.readFileSync(IP_DATA_FILE, 'utf-8');
-    return JSON.parse(data);
+    const attempts = await kv.get<IpAttempt[]>(IP_ATTEMPTS_KEY);
+    return attempts || [];
   } catch (error) {
+    console.error('读取IP尝试记录失败:', error);
     return [];
   }
 }
 
 // 保存IP尝试记录
-function saveIpAttempts(attempts: IpAttempt[]) {
-  ensureDataDir();
-  fs.writeFileSync(IP_DATA_FILE, JSON.stringify(attempts, null, 2));
+async function saveIpAttempts(attempts: IpAttempt[]): Promise<void> {
+  try {
+    await kv.set(IP_ATTEMPTS_KEY, attempts);
+  } catch (error) {
+    console.error('保存IP尝试记录失败:', error);
+  }
 }
 
 // 清理过期记录
@@ -44,8 +35,8 @@ function cleanExpiredAttempts(attempts: IpAttempt[]): IpAttempt[] {
 }
 
 // 检查IP是否被限制
-export function checkIpLimit(ip: string): { allowed: boolean; message?: string } {
-  let attempts = getIpAttempts();
+export async function checkIpLimit(ip: string): Promise<{ allowed: boolean; message?: string }> {
+  let attempts = await getIpAttempts();
   attempts = cleanExpiredAttempts(attempts);
 
   const ipAttempt = attempts.find((a) => a.ip === ip);
@@ -67,8 +58,8 @@ export function checkIpLimit(ip: string): { allowed: boolean; message?: string }
 }
 
 // 记录IP尝试
-export function recordIpAttempt(ip: string) {
-  let attempts = getIpAttempts();
+export async function recordIpAttempt(ip: string): Promise<void> {
+  let attempts = await getIpAttempts();
   attempts = cleanExpiredAttempts(attempts);
 
   const existingIndex = attempts.findIndex((a) => a.ip === ip);
@@ -84,7 +75,7 @@ export function recordIpAttempt(ip: string) {
     });
   }
 
-  saveIpAttempts(attempts);
+  await saveIpAttempts(attempts);
 }
 
 // 获取客户端IP

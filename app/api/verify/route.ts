@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
     const clientIp = getClientIp(request);
 
     // 检查IP限制
-    const ipCheck = checkIpLimit(clientIp);
+    const ipCheck = await checkIpLimit(clientIp);
     if (!ipCheck.allowed) {
       return NextResponse.json<ApiResponse>({
         success: false,
@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 记录IP尝试
-    recordIpAttempt(clientIp);
+    await recordIpAttempt(clientIp);
 
     const { code } = await request.json();
 
