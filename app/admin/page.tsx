@@ -368,15 +368,10 @@ export default function AdminPage() {
       let failCount = 0;
       const errors: string[] = [];
 
-      for (const account of accountsData) {
-        // 将整个账号对象转换为格式化的字符串作为兑换内容
-        const content = `账号信息：
-邮箱：${account.email || '未提供'}
-密码：${account.password || '未提供'}
-姓名：${account.firstName || ''} ${account.lastName || ''}
-API Key：${account.apiKey || '未提供'}
-创建时间：${account.createdAt ? new Date(account.createdAt).toLocaleString('zh-CN') : '未知'}
-更新时间：${account.updatedAt ? new Date(account.updatedAt).toLocaleString('zh-CN') : '未知'}`;
+      for (const item of accountsData) {
+        // 直接使用导入的内容，不做任何格式化
+        // 如果是字符串，直接使用；如果是对象，转换为JSON字符串
+        const content = typeof item === 'string' ? item : JSON.stringify(item, null, 2);
 
         try {
           const response = await fetch('/api/admin/cards', {
@@ -397,11 +392,11 @@ API Key：${account.apiKey || '未提供'}
             successCount++;
           } else {
             failCount++;
-            errors.push(`${account.email || 'Unknown'}: ${result.message}`);
+            errors.push(`导入失败: ${result.message}`);
           }
         } catch (error) {
           failCount++;
-          errors.push(`${account.email || 'Unknown'}: 网络错误`);
+          errors.push(`导入失败: 网络错误`);
         }
       }
 
@@ -877,11 +872,16 @@ API Key：${account.apiKey || '未提供'}
                       导入格式说明
                     </label>
                     <div className="text-xs text-gray-600 bg-blue-50 border border-blue-200 rounded p-3 space-y-1">
-                      <p className="font-semibold text-blue-700 mb-1">JSON数组格式：</p>
+                      <p className="font-semibold text-blue-700 mb-1">支持两种格式：</p>
+                      <p className="mt-1 text-gray-700">1. 字符串数组：</p>
                       <p className="font-mono text-[10px] bg-white p-2 rounded border border-blue-300 overflow-x-auto">
-                        [{`{`}"email":"xxx@xxx.com","password":"xxx","apiKey":"sk-xxx",...{`}`},{`...`}]
+                        ["内容1", "内容2", "内容3"]
                       </p>
-                      <p className="mt-2 text-gray-600">每个对象会自动生成一个卡密，内容包含完整的账号信息</p>
+                      <p className="mt-2 text-gray-700">2. 对象数组（会转为JSON格式）：</p>
+                      <p className="font-mono text-[10px] bg-white p-2 rounded border border-blue-300 overflow-x-auto">
+                        [{`{`}"email":"xxx","password":"xxx"{`}`}, {`{`}"email":"yyy","password":"yyy"{`}`}]
+                      </p>
+                      <p className="mt-2 text-gray-600">每个元素会生成一个卡密，内容原样保存</p>
                     </div>
                   </div>
 
@@ -892,7 +892,7 @@ API Key：${account.apiKey || '未提供'}
                     <textarea
                       value={batchImportText}
                       onChange={(e) => setBatchImportText(e.target.value)}
-                      placeholder='[{"email":"test@example.com","password":"pass123","apiKey":"sk-xxx"}]'
+                      placeholder='["内容1", "内容2"] 或 [{"email":"test@example.com","password":"pass123"}]'
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition text-xs min-h-[150px] resize-none font-mono"
                     />
                   </div>
