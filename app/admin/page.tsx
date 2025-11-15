@@ -298,6 +298,94 @@ export default function AdminPage() {
     }
   };
 
+  // 更新售卖状态
+  const handleUpdateSoldStatus = async (id: string, soldStatus: 'sold' | 'unsold') => {
+    // 乐观更新：立即更新UI
+    setCards(prevCards => prevCards.map(c =>
+      c.id === id ? { ...c, soldStatus } : c
+    ));
+
+    try {
+      const response = await fetch('/api/admin/cards/sold-status', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ id, soldStatus }),
+      });
+
+      const data = await response.json();
+
+      if (!data.success) {
+        // 如果更新失败，恢复数据
+        alert(data.message || '更新失败');
+        loadCards();
+      }
+    } catch (error) {
+      alert('网络错误，请稍后重试');
+      // 网络错误时恢复数据
+      loadCards();
+    }
+  };
+
+  // 同步账号信息
+  const handleSyncAccount = async (id: string) => {
+    try {
+      const response = await fetch('/api/admin/cards/sync-account', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ id }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        // 更新UI
+        setCards(prevCards => prevCards.map(c =>
+          c.id === id ? { ...c, account: data.data.account } : c
+        ));
+        alert('同步成功！');
+      } else {
+        alert(data.message || '同步失败');
+      }
+    } catch (error) {
+      alert('网络错误，请稍后重试');
+    }
+  };
+
+  // 批量同步所有账号
+  const handleSyncAllAccounts = async () => {
+    if (!confirm('确定要同步所有卡密的账号信息吗？')) {
+      return;
+    }
+
+    setLoading(true);
+    setMessage('正在同步账号信息...');
+
+    try {
+      const response = await fetch('/api/admin/cards/sync-all-accounts', {
+        method: 'POST',
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        // 更新所有卡密数据
+        setCards(data.data.cards);
+        setMessage(`同步完成！共同步 ${data.data.syncedCount} 个账号`);
+        setTimeout(() => setMessage(''), 3000);
+      } else {
+        setMessage(data.message || '同步失败');
+      }
+    } catch (error) {
+      setMessage('网络错误，请稍后重试');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // 批量删除选中的卡密
   const handleBatchDelete = async () => {
     if (selectedCards.size === 0) {
@@ -1100,6 +1188,17 @@ export default function AdminPage() {
                   >
                     导出CSV
                   </button>
+                  <button
+                    onClick={handleSyncAllAccounts}
+                    className="px-3 py-1.5 text-sm bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition shadow-sm flex items-center gap-1.5"
+                    disabled={cards.length === 0 || loading}
+                    title="从内容中提取并同步所有账号信息"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    批量同步账号
+                  </button>
                 </div>
               </div>
             </div>
@@ -1219,8 +1318,10 @@ export default function AdminPage() {
                       </th>
                       <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap w-20">类型</th>
                       <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap w-36">卡密</th>
+                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap w-40">账号</th>
                       <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap w-64">内容</th>
-                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap w-20">状态</th>
+                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap w-20">兑换状态</th>
+                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap w-20">售卖状态</th>
                       <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap w-24">使用次数</th>
                       <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap w-36">创建时间</th>
                       <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap w-24">操作</th>
@@ -1262,6 +1363,11 @@ export default function AdminPage() {
                             </button>
                           </div>
                         </td>
+                        <td className="px-3 py-3 whitespace-nowrap w-40">
+                          <div className="text-sm text-gray-700 truncate" title={card.account || '未知'}>
+                            {card.account || '未知'}
+                          </div>
+                        </td>
                         <td className="px-3 py-3 w-64">
                           <div className="text-sm text-gray-900 max-w-xs truncate" title={card.content}>
                             {card.content}
@@ -1281,6 +1387,19 @@ export default function AdminPage() {
                             {card.used ? '已用完' : '可使用'}
                           </span>
                         </td>
+                        <td className="px-3 py-3 whitespace-nowrap w-20">
+                          <button
+                            onClick={() => handleUpdateSoldStatus(card.id, card.soldStatus === 'sold' ? 'unsold' : 'sold')}
+                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium transition cursor-pointer ${
+                              card.soldStatus === 'sold'
+                                ? 'bg-orange-100 text-orange-800 hover:bg-orange-200'
+                                : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+                            }`}
+                            title="点击切换售卖状态"
+                          >
+                            {card.soldStatus === 'sold' ? '已售' : '未售'}
+                          </button>
+                        </td>
                         <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-900 w-24 text-center">
                           {card.usedCount}/{card.maxUses}
                         </td>
@@ -1294,7 +1413,7 @@ export default function AdminPage() {
                           })}
                         </td>
                         <td className="px-3 py-3 whitespace-nowrap text-sm w-24">
-                          <div className="flex items-center gap-2 justify-center">
+                          <div className="flex items-center gap-1.5 justify-center">
                             <button
                               onClick={() => copyToClipboard(card.code)}
                               className="text-indigo-600 hover:text-indigo-900 transition"
@@ -1311,6 +1430,15 @@ export default function AdminPage() {
                             >
                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                              </svg>
+                            </button>
+                            <button
+                              onClick={() => handleSyncAccount(card.id)}
+                              className="text-green-600 hover:text-green-900 transition"
+                              title="同步账号"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                               </svg>
                             </button>
                             <button

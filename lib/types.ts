@@ -13,6 +13,8 @@ export interface CardCode {
   maxUses: number; // 最大使用次数
   usedCount: number; // 已使用次数
   type: CardType; // 卡密类型
+  account?: string; // 账号信息（从content中提取）
+  soldStatus?: 'sold' | 'unsold'; // 售卖状态：已售/未售
   useHistory?: Array<{ // 使用历史
     ip: string;
     usedAt: string;

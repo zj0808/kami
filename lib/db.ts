@@ -33,9 +33,25 @@ export async function findCardByCode(code: string): Promise<CardCode | undefined
   return cards.find(card => card.code === code);
 }
 
+// 从内容中提取账号信息
+function extractAccount(content: string, type: CardType): string {
+  try {
+    const data = JSON.parse(content);
+    if (type === 'augment') {
+      return data.email_note || '';
+    } else if (type === 'windsurf') {
+      return data.email || '';
+    }
+  } catch (e) {
+    // 如果不是JSON格式，返回空字符串
+  }
+  return '';
+}
+
 // 创建新卡密
 export async function createCard(code: string, content: string, maxUses: number = 1, type: CardType = 'augment'): Promise<CardCode> {
   const cards = await getAllCards();
+  const account = extractAccount(content, type);
   const newCard: CardCode = {
     id: Date.now().toString(),
     code,
@@ -45,6 +61,8 @@ export async function createCard(code: string, content: string, maxUses: number 
     maxUses,
     usedCount: 0,
     type,
+    account,
+    soldStatus: 'unsold', // 默认未售
     useHistory: [],
   };
   cards.push(newCard);
@@ -106,6 +124,7 @@ export async function deleteCard(id: string): Promise<boolean> {
 export async function createBatchCards(content: string, count: number, maxUses: number = 1, type: CardType = 'augment'): Promise<CardCode[]> {
   const cards = await getAllCards();
   const newCards: CardCode[] = [];
+  const account = extractAccount(content, type);
 
   for (let i = 0; i < count; i++) {
     const code = generateCode();
@@ -118,6 +137,8 @@ export async function createBatchCards(content: string, count: number, maxUses: 
       maxUses,
       usedCount: 0,
       type,
+      account,
+      soldStatus: 'unsold', // 默认未售
       useHistory: [],
     };
     newCards.push(newCard);
@@ -126,6 +147,48 @@ export async function createBatchCards(content: string, count: number, maxUses: 
 
   await saveCards(cards);
   return newCards;
+}
+
+// 更新售卖状态
+export async function updateCardSoldStatus(id: string, soldStatus: 'sold' | 'unsold'): Promise<boolean> {
+  const cards = await getAllCards();
+  const card = cards.find(c => c.id === id);
+
+  if (!card) return false;
+
+  card.soldStatus = soldStatus;
+  await saveCards(cards);
+  return true;
+}
+
+// 同步账号信息（从内容中提取）
+export async function syncCardAccount(id: string): Promise<{ account: string } | null> {
+  const cards = await getAllCards();
+  const card = cards.find(c => c.id === id);
+
+  if (!card) return null;
+
+  // 从内容中提取账号
+  const account = extractAccount(card.content, card.type);
+  card.account = account;
+
+  await saveCards(cards);
+  return { account };
+}
+
+// 批量同步所有账号信息
+export async function syncAllCardAccounts(): Promise<{ syncedCount: number; cards: CardCode[] }> {
+  const cards = await getAllCards();
+  let syncedCount = 0;
+
+  for (const card of cards) {
+    const account = extractAccount(card.content, card.type);
+    card.account = account;
+    syncedCount++;
+  }
+
+  await saveCards(cards);
+  return { syncedCount, cards };
 }
 
 // 生成随机卡密
