@@ -1,40 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
-import fs from 'fs/promises';
-import path from 'path';
+import { kv } from '@vercel/kv';
 
-const CONFIG_FILE = path.join(process.cwd(), 'data', 'config.json');
+const CONFIG_KEY = 'config:system'; // Redis key for system config
 
 // 默认配置
 const DEFAULT_CONFIG = {
   purchaseUrl: '',
 };
 
-// 确保配置文件存在
-async function ensureConfigFile() {
-  try {
-    await fs.access(CONFIG_FILE);
-  } catch {
-    const dataDir = path.dirname(CONFIG_FILE);
-    try {
-      await fs.access(dataDir);
-    } catch {
-      await fs.mkdir(dataDir, { recursive: true });
-    }
-    await fs.writeFile(CONFIG_FILE, JSON.stringify(DEFAULT_CONFIG, null, 2));
-  }
-}
-
 // 读取配置
 async function readConfig() {
-  await ensureConfigFile();
-  const data = await fs.readFile(CONFIG_FILE, 'utf-8');
-  return JSON.parse(data);
+  const config = await kv.get<typeof DEFAULT_CONFIG>(CONFIG_KEY);
+  return config || DEFAULT_CONFIG;
 }
 
 // 写入配置
-async function writeConfig(config: any) {
-  await ensureConfigFile();
-  await fs.writeFile(CONFIG_FILE, JSON.stringify(config, null, 2));
+async function writeConfig(config: typeof DEFAULT_CONFIG) {
+  await kv.set(CONFIG_KEY, config);
 }
 
 // GET - 获取配置
@@ -60,8 +42,9 @@ export async function POST(request: NextRequest) {
     }
 
     // 更新配置
-    const config = await readConfig();
-    config.purchaseUrl = purchaseUrl || '';
+    const config = {
+      purchaseUrl: purchaseUrl || '',
+    };
     await writeConfig(config);
 
     return NextResponse.json({ success: true, config });
