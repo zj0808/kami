@@ -60,14 +60,19 @@ export async function POST(request: NextRequest) {
       }, { status: 400, headers: corsHeaders() });
     }
 
-    // 标记为已使用，记录IP
-    const success = await markCardAsUsed(code, clientIp);
+    // 检查当前IP是否已经使用过这个卡密
+    const hasUsedByThisIp = card.useHistory?.some(history => history.ip === clientIp);
 
-    if (!success) {
-      return NextResponse.json<ApiResponse>({
-        success: false,
-        message: '卡密使用失败',
-      }, { status: 500, headers: corsHeaders() });
+    // 只有当前IP没有使用过时，才标记为已使用
+    if (!hasUsedByThisIp) {
+      const success = await markCardAsUsed(code, clientIp);
+
+      if (!success) {
+        return NextResponse.json<ApiResponse>({
+          success: false,
+          message: '卡密使用失败',
+        }, { status: 500, headers: corsHeaders() });
+      }
     }
 
     // 重新获取卡密信息，获取最新的使用次数

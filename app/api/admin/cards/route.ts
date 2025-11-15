@@ -36,12 +36,20 @@ export async function GET() {
 // 创建新卡密（支持批量创建）
 export async function POST(request: NextRequest) {
   try {
-    const { content, customCode, maxUses = 1, batchCount = 1 } = await request.json();
+    const { content, customCode, maxUses = 1, batchCount = 1, type = 'augment' } = await request.json();
 
     if (!content) {
       return NextResponse.json<ApiResponse>({
         success: false,
         message: '请输入内容',
+      }, { status: 400, headers: corsHeaders() });
+    }
+
+    // 验证类型
+    if (type !== 'augment' && type !== 'windsurf') {
+      return NextResponse.json<ApiResponse>({
+        success: false,
+        message: '无效的卡密类型',
       }, { status: 400, headers: corsHeaders() });
     }
 
@@ -54,7 +62,7 @@ export async function POST(request: NextRequest) {
         }, { status: 400, headers: corsHeaders() });
       }
 
-      const newCards = await createBatchCards(content, batchCount, maxUses);
+      const newCards = await createBatchCards(content, batchCount, maxUses, type);
       return NextResponse.json<ApiResponse>({
         success: true,
         data: newCards,
@@ -64,7 +72,7 @@ export async function POST(request: NextRequest) {
 
     // 单个创建
     const code = customCode || generateRandomCode();
-    const newCard = await createCard(code, content, maxUses);
+    const newCard = await createCard(code, content, maxUses, type);
 
     return NextResponse.json<ApiResponse>({
       success: true,

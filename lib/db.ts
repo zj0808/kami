@@ -1,5 +1,5 @@
 import { kv } from '@vercel/kv';
-import { CardCode } from './types';
+import { CardCode, CardType } from './types';
 
 const CARDS_KEY = 'cards:all'; // Redis key for storing all cards
 
@@ -34,7 +34,7 @@ export async function findCardByCode(code: string): Promise<CardCode | undefined
 }
 
 // 创建新卡密
-export async function createCard(code: string, content: string, maxUses: number = 1): Promise<CardCode> {
+export async function createCard(code: string, content: string, maxUses: number = 1, type: CardType = 'augment'): Promise<CardCode> {
   const cards = await getAllCards();
   const newCard: CardCode = {
     id: Date.now().toString(),
@@ -44,6 +44,7 @@ export async function createCard(code: string, content: string, maxUses: number 
     createdAt: new Date().toISOString(),
     maxUses,
     usedCount: 0,
+    type,
     useHistory: [],
   };
   cards.push(newCard);
@@ -102,7 +103,7 @@ export async function deleteCard(id: string): Promise<boolean> {
 }
 
 // 批量创建卡密
-export async function createBatchCards(content: string, count: number, maxUses: number = 1): Promise<CardCode[]> {
+export async function createBatchCards(content: string, count: number, maxUses: number = 1, type: CardType = 'augment'): Promise<CardCode[]> {
   const cards = await getAllCards();
   const newCards: CardCode[] = [];
 
@@ -116,6 +117,7 @@ export async function createBatchCards(content: string, count: number, maxUses: 
       createdAt: new Date().toISOString(),
       maxUses,
       usedCount: 0,
+      type,
       useHistory: [],
     };
     newCards.push(newCard);
@@ -137,3 +139,7 @@ export function generateRandomCode(length: number = 12): string {
   return result.match(/.{1,4}/g)?.join('-') || result;
 }
 
+// 清空所有卡密数据
+export async function clearAllCards(): Promise<void> {
+  await kv.set(CARDS_KEY, []);
+}

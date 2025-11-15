@@ -1,3 +1,6 @@
+// 卡密类型
+export type CardType = 'augment' | 'windsurf';
+
 // 卡密数据类型定义
 export interface CardCode {
   id: string;
@@ -9,6 +12,7 @@ export interface CardCode {
   createdAt: string;
   maxUses: number; // 最大使用次数
   usedCount: number; // 已使用次数
+  type: CardType; // 卡密类型
   useHistory?: Array<{ // 使用历史
     ip: string;
     usedAt: string;
