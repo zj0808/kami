@@ -27,6 +27,10 @@ export default function AdminPage() {
   const [batchImportText, setBatchImportText] = useState(''); // 批量导入文本
   const [batchImportType, setBatchImportType] = useState<'augment' | 'windsurf'>('augment'); // 批量导入类型
 
+  // 分页相关状态
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+
   // 配置相关状态
   const [purchaseUrl, setPurchaseUrl] = useState(''); // 购买链接
   const [configLoading, setConfigLoading] = useState(false); // 配置加载状态
@@ -36,8 +40,8 @@ export default function AdminPage() {
   const filteredCards = useMemo(() => {
     return cards.filter((card) => {
       // 状态筛选
-      if (filterStatus === 'used' && !card.used) return false;
-      if (filterStatus === 'unused' && card.used) return false;
+      if (filterStatus === 'used' && card.usedCount === 0) return false;
+      if (filterStatus === 'unused' && card.usedCount > 0) return false;
 
       // 类型筛选
       if (filterType !== 'all' && card.type !== filterType) return false;
@@ -55,12 +59,22 @@ export default function AdminPage() {
     });
   }, [cards, filterStatus, filterType, searchQuery]);
 
+  // 分页数据 - 使用 useMemo 优化性能
+  const paginatedCards = useMemo(() => {
+    const startIndex = (page - 1) * pageSize;
+    const endIndex = startIndex + pageSize;
+    return filteredCards.slice(startIndex, endIndex);
+  }, [filteredCards, page, pageSize]);
+
+  // 总页数
+  const totalPages = Math.ceil(filteredCards.length / pageSize);
+
   // 计算统计数据 - 使用 useMemo 优化性能
   const stats = useMemo(() => {
     return {
       total: cards.length,
-      used: cards.filter(c => c.used).length,
-      unused: cards.filter(c => !c.used).length,
+      used: cards.filter(c => c.usedCount > 0).length,
+      unused: cards.filter(c => c.usedCount === 0).length,
       totalUses: cards.reduce((sum, c) => sum + c.usedCount, 0),
       totalMaxUses: cards.reduce((sum, c) => sum + c.maxUses, 0),
       augment: cards.filter(c => c.type === 'augment').length,
@@ -1213,7 +1227,7 @@ API Key：${account.apiKey || '未提供'}
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {filteredCards.map((card) => (
+                    {paginatedCards.map((card) => (
                       <tr key={card.id} className={`hover:bg-gray-50 transition ${selectedCards.has(card.id) ? 'bg-indigo-50' : ''}`}>
                         <td className="px-3 py-3 whitespace-nowrap w-12">
                           <input
@@ -1314,6 +1328,61 @@ API Key：${account.apiKey || '未提供'}
                     ))}
                   </tbody>
                 </table>
+              )}
+
+              {/* 分页控件 */}
+              {filteredCards.length > 0 && (
+                <div className="mt-6 flex items-center justify-between border-t border-gray-200 pt-4 px-4">
+                  <div className="flex items-center gap-4">
+                    <span className="text-sm text-gray-700">
+                      共 <span className="font-medium">{filteredCards.length}</span> 条记录，
+                      第 <span className="font-medium">{page}</span> / <span className="font-medium">{totalPages}</span> 页
+                    </span>
+                    <select
+                      value={pageSize}
+                      onChange={(e) => {
+                        setPageSize(Number(e.target.value));
+                        setPage(1); // 重置到第一页
+                      }}
+                      className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
+                    >
+                      <option value={10}>10条/页</option>
+                      <option value={20}>20条/页</option>
+                      <option value={50}>50条/页</option>
+                      <option value={100}>100条/页</option>
+                    </select>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setPage(1)}
+                      disabled={page === 1}
+                      className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                    >
+                      首页
+                    </button>
+                    <button
+                      onClick={() => setPage(page - 1)}
+                      disabled={page === 1}
+                      className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                    >
+                      上一页
+                    </button>
+                    <button
+                      onClick={() => setPage(page + 1)}
+                      disabled={page === totalPages}
+                      className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                    >
+                      下一页
+                    </button>
+                    <button
+                      onClick={() => setPage(totalPages)}
+                      disabled={page === totalPages}
+                      className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                    >
+                      末页
+                    </button>
+                  </div>
+                </div>
               )}
             </div>
             </div>
